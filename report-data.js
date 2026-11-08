@@ -48,4 +48,19 @@ function getReportData() {
   };
 }
 
-module.exports = { getReportData };
+
+
+function getAllOrders() {
+  const db = new DatabaseSync("report.db");
+
+  const rows = db
+    .prepare(
+      "SELECT id, customer, product, amount, created_at FROM orders ORDER BY created_at, id"
+    )
+    .all();
+
+  db.close();
+  return rows;
+}
+
+module.exports = { getReportData, getAllOrders };
