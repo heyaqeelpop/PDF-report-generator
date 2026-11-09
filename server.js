@@ -1,8 +1,9 @@
 const express = require("express");
 const path = require("path");
-const { generateReport, getReport } = require("./reports");
+const { generateReport, getReport, findTodaysReport } = require("./reports");
 
 const app = express();
+app.use(express.json());
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
@@ -10,6 +11,16 @@ app.get("/health", (req, res) => {
 
 // Door 1: make a report (slow: takes a few seconds)
 app.post("/reports", async (req, res) => {
+  const force = req.body && req.body.force === true;
+
+  // Idempotency check: reuse today's report unless force is true
+  if (!force) {
+    const existing = findTodaysReport();
+    if (existing) {
+      return res.status(200).json({ id: existing.id, file: existing.file });
+    }
+  }
+
   try {
     const report = await generateReport();
     res.status(201).json(report);
@@ -42,6 +53,12 @@ app.get("/reports/:id/file", (req, res) => {
 
   if (!report) {
     return res.status(404).json({ error: "Report not found" });
+  }
+
+  if (!report.path) {
+    return res
+      .status(409)
+      .json({ error: "Report is still being generated, try again shortly" });
   }
 
   res.sendFile(path.resolve(report.path));

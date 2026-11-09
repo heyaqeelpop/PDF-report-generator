@@ -70,4 +70,24 @@ function getReport(id) {
   };
 }
 
-module.exports = { generateReport, getReport };
+function findTodaysReport() {
+  const db = openDb();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const row = db
+    .prepare(
+      "SELECT id, path, created_at FROM reports WHERE created_at >= ? ORDER BY id DESC LIMIT 1"
+    )
+    .get(today);
+  db.close();
+
+  if (!row) return null;
+  return {
+    id: row.id,
+    file: `/reports/${row.id}/file`,
+    path: row.path,
+    created_at: row.created_at,
+  };
+}
+
+module.exports = { generateReport, getReport, findTodaysReport };
